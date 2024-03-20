@@ -8,7 +8,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-var conf Config
+var Conf *Config
 
 type Config struct {
     RetryTimes int // 重试次数
@@ -22,19 +22,19 @@ type Config struct {
 
 // GetUid 获取uid
 func GetUid() (int, error) {
-    for i := 0; i < conf.RetryTimes; i++ {
+    for i := 0; i < Conf.RetryTimes; i++ {
         uid, _ := getUid()
         if uid != 0 {
             return uid, nil
         }
-        time.Sleep(conf.RetryTimeSleep)
+        time.Sleep(Conf.RetryTimeSleep)
     }
     return 0, fmt.Errorf("get uid failed")
 }
 
 func getUid() (int, error) {
     // 从redis中获取一个uid
-    uid, err := conf.Rdb.RPop(context.Background(), conf.CacheKey).Int()
+    uid, err := Conf.Rdb.RPop(context.Background(), Conf.CacheKey).Int()
     //出错返回0和error
     if err != redis.Nil && err != nil {
         return 0, err
@@ -49,19 +49,19 @@ func getUid() (int, error) {
     if err != nil {
         return 0, err
     }
-    return conf.Rdb.RPop(context.Background(), conf.CacheKey).Int()
+    return Conf.Rdb.RPop(context.Background(), Conf.CacheKey).Int()
 }
 
 // Maintain 维护uid池子
 func maintain() error {
     //获取池子长度
-    l, err := conf.Rdb.LLen(context.Background(), conf.CacheKey).Result()
+    l, err := Conf.Rdb.LLen(context.Background(), Conf.CacheKey).Result()
     //执行出错返回错误
     if err != redis.Nil && err != nil {
         return err
     }
     //长度大于阈值, 直接返回
-    if l > int64(conf.Threshold) {
+    if l > int64(Conf.Threshold) {
         return nil
     }
     //尝试加锁,如果获取锁失败,返回错误,可忽略
@@ -69,14 +69,14 @@ func maintain() error {
         return fmt.Errorf("lock failed")
     }
     //再次获取
-    uidList := conf.getUidList()
+    uidList := Conf.getUidList()
 
     return fillUidPool(uidList)
 }
 
 // Lock 加锁,防止重复填充
 func lock() bool {
-    set, err := conf.Rdb.SetNX(context.Background(), conf.LockKey, 1, time.Second * 60).Result()
+    set, err := Conf.Rdb.SetNX(context.Background(), Conf.LockKey, 1, time.Second * 60).Result()
     if err != nil {
         return false
     }
@@ -85,7 +85,7 @@ func lock() bool {
 
 // Flush 清空池子
 func Flush() error {
-    _, err := conf.Rdb.Del(context.Background(), conf.CacheKey).Result()
+    _, err := Conf.Rdb.Del(context.Background(), Conf.CacheKey).Result()
     return err
 }
 
@@ -99,10 +99,10 @@ func BgMaintain() {
 
 // FillUidPool 填充uid池子
 func fillUidPool(uidList []int) error {
-    pipeline := conf.Rdb.Pipeline()
+    pipeline := Conf.Rdb.Pipeline()
 
     for _, uid := range uidList {
-        pipeline.LPush(context.Background(), conf.CacheKey, uid)
+        pipeline.LPush(context.Background(), Conf.CacheKey, uid)
     }
 
     pipeline.Exec(context.Background())

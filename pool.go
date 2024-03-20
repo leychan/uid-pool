@@ -68,6 +68,7 @@ func maintain() error {
     if !lock() {
         return fmt.Errorf("lock failed")
     }
+    defer Unlock()
     //再次获取
     uidList := Conf.GetUidList()
 
@@ -81,6 +82,11 @@ func lock() bool {
         return false
     }
     return set
+}
+
+func Unlock() error {
+    _, err := Conf.Rdb.Del(context.Background(), Conf.LockKey).Result()
+    return err
 }
 
 // Flush 清空池子

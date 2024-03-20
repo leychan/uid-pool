@@ -17,7 +17,7 @@ type Config struct {
     Threshold int  //池子阈值,低于此值将触发填充
     LockKey string //执行填充的时候,需要先加锁
     Rdb *redis.Client //redis client
-    getUidList func() ([]int) //获取uid列表方法
+    GetUidList func() ([]int) //获取uid列表方法
 }
 
 // GetUid 获取uid

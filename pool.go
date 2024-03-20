@@ -69,7 +69,7 @@ func maintain() error {
         return fmt.Errorf("lock failed")
     }
     //再次获取
-    uidList := Conf.getUidList()
+    uidList := Conf.GetUidList()
 
     return fillUidPool(uidList)
 }

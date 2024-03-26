@@ -11,8 +11,9 @@ import (
 var Conf *Config
 
 type Config struct {
+    CronTimeDuration time.Duration //定时维护池子执行间隔
     RetryTimes int // 重试次数
-    RetryTimeSleep time.Duration
+    RetryTimeSleep time.Duration // 重试间隔
     CacheKey string  //缓存key, 必须设置
     Threshold int  //池子阈值,低于此值将触发填充
     LockKey string //执行填充的时候,需要先加锁
@@ -99,7 +100,7 @@ func Flush() error {
 func BgMaintain() {
     for {
         maintain()
-        time.Sleep(time.Second * 5)
+        time.Sleep(Conf.CronTimeDuration)
     }
 }
 

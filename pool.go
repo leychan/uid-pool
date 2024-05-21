@@ -21,6 +21,69 @@ type Config struct {
     GetUidList func() ([]int) //获取uid列表方法
 }
 
+type ConfigOption func(*Config)
+
+func WithCronTimeDuration(d time.Duration) ConfigOption {
+    return func(cfg *Config) {
+        cfg.CronTimeDuration = d
+    }
+}
+
+func WithRetryTimes(n int) ConfigOption {
+    return func(cfg *Config) {
+        cfg.RetryTimes = n
+    }
+}
+
+func WithRetryTimeSleep(d time.Duration) ConfigOption {
+    return func(cfg *Config) {
+        cfg.RetryTimeSleep = d
+    }
+}
+
+func WithCacheKey(k string) ConfigOption {
+    return func(cfg *Config) {
+        cfg.CacheKey = k
+    }
+}
+
+func WithThreshold(n int) ConfigOption {
+    return func(cfg *Config) {
+        cfg.Threshold = n
+    }
+}
+
+func WithLockKey(k string) ConfigOption {
+    return func(cfg *Config) {
+        cfg.LockKey = k
+    }
+}
+
+func WithRdb(r *redis.Client) ConfigOption {
+    return func(cfg *Config) {
+        cfg.Rdb = r
+    }
+}
+
+// NewConfig 初始化配置
+func NewConfig(cacheKey string, threshold int, lockKey string, Rdb *redis.Client, GetUidList func() ([]int), options ...ConfigOption) *Config {
+    cfg := &Config{
+        CronTimeDuration: time.Second * 5,
+        RetryTimes:  3, // 从池子获取uid的重试次数
+        RetryTimeSleep: time.Millisecond * 15, // 从池子获取uid的重试间隔
+        CacheKey: cacheKey,
+        Threshold: threshold,
+        LockKey: lockKey,
+        Rdb: Rdb,
+        GetUidList: GetUidList,
+    }
+
+    for _, option := range options {
+        option(cfg)
+    }
+    return cfg
+}
+
 // GetUid 获取uid
 func GetUid() (int, error) {
     for i := 0; i < Conf.RetryTimes; i++ {

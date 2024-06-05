@@ -12,20 +12,13 @@ $ go get github.com/leychan/uid-pool
 
 ### 清空池子,并起一个协程维护uid池子
 ```go
-uidpool.Conf = &uidpool.Config{
-    CronTimeDuration: time.Duration(5) * time.Second,
-    RetryTimes:  3, // 从池子获取uid的重试次数
-    RetryTimeSleep: time.Millisecond * 10, // 从池子获取uid的重试间隔
-    CacheKey: "your_redis_key", // uid池子在redis的key
-    LockKey:   "your_redis_lock_key",
-    Threshold: 1000, // 池子长度低于此值时，执行维护
-    Rdb:       redis.NewClient(&redis.Options{}), //redis客户端
-    GetUidList: service.GetUidList, //补充获取uid的方法
+func loadUidPool() {
+	cfg := uidpool.NewConfig(redis.MEMBER_UID_POOL_IN_REDIS, 1000, redis.MEMBER_UID_POOL_LOCK_IN_REDIS, config.GetRdb(), service.GetUidList, 
+		uidpool.WithCronTimeDuration(1 * time.Second), uidpool.WithRetryTimeSleep(100 * time.Millisecond))
+	uidpool.Conf = cfg
+	uidpool.Flush() //每次启动都刷新,防止有重复的uid导致写库失败
+	go uidpool.BgMaintain() //开启后台维护
 }
-//清空当前池子
-uidpool.Flush()
-//起一个协程维护池子
-go uidpool.BgMaintain()
 ```
 
 ### 获取uid
